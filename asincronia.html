@@ -9,8 +9,267 @@
         <h1>Asincronia JavaScript</h1>
         <script>
             /* 
-                
+                Tenemos un array numbers, en el cuál insertaremos números. 
+                Insertaremos la cantidad de números que figura en iterations. 
+                En cada iteración se insertará un number, que habrá sido 
+                generado con una simulación del lanzamiento de un dado 
+                (un número aleatorio del 1 al 6). En el caso de obtener un 
+                6, paramos y rompemos el bucle
             */
+
+            const iterations = 10;
+            const numbers = [];
+
+            for (let i = 0; i < iterations; i++) {
+                const number = 1 + Math.floor(Math.random() * 6);
+                numbers.push(number);
+                if (number === 6) {
+                    console.log("ERROR");
+                    break;
+                }
+            }
+
+            console.log(numbers);
+
+            /* 
+                Al terminar este fragmento de código, tendremos un array numbers 
+                que contendrá todos los números obtenidos en los lanzamientos de 
+                los dados, es decir, 10 números si no hemos obtenido ningún 6. 
+                Si hemos obtenido un 6 puede que tengamos menos números, debido 
+                a que se rompe el bucle tras insertarlo.
+                Este ejemplo es una tarea síncrona (aún no existe asincronía). 
+            
+                Vamos a utilizar el ejemplo del lanzamiento de 10 dados que 
+                explicamos en el primer capítulo de Asincronía, para adaptarlo 
+                a funciones callbacks. En primer lugar, veamos la implementación 
+                de la función doTask.
+                Actualmente, controlar la asincronía sólo mediante callbacks 
+                puede ser una práctica obsoleta. Es preferible utilizar promesas, que 
+                generalmente es más adecuado.
+            */
+
+            /* Implementación con callbacks */
+            const doTask = (iterations, callback) => {
+                const numbers = [];
+                for (let i = 0; i < iterations; i++) {
+                    const number = 1 + Math.floor(Math.random() * 6);
+                    numbers.push(number);
+                    if (number === 6) {
+                    /* Error, se ha sacado un 6 */
+                    callback({
+                        error: true,
+                        message: "Se ha sacado un 6"
+                    });
+                    return;
+                    }
+                }
+                /* Termina bucle y no se ha sacado 6 */
+                return callback(null, {
+                    error: false,
+                    value: numbers
+                });
+            }
+
+            /* 
+                Como se puede ver, estamos utilizando arrow functions 
+                para definir la función doTask(). Le pasamos un parámetro 
+                iterations que simplemente indica el número de iteraciones 
+                que tendrá el bucle (número de lanzamientos del dado). 
+                Por otro lado, el segundo parámetro es nuestro callback, 
+                que recordemos que es una función, por lo que podremos 
+                ejecutarla en momentos concretos de nuestro código. 
+                Lo hacemos en dos ocasiones:
+
+                En el if cuando number es 6 (detectamos como error cuando 
+                obtenemos un 6). Le pasamos un objeto por parámetro que 
+                contiene un error y message, el mensaje de error.
+
+                Tras el for, con dos parámetros. El primero null, ya que en 
+                este caso no hay error. El segundo parámetro un objeto 
+                que contiene un campo value con el array de resultados.
+
+                Teniendo claro esto, veamos la llamada a la función doTask(), 
+                donde le pasamos esa función callback e implementamos el 
+                funcionamiento, que en nuestro caso serán dos simples 
+                console.error() y console.log():
+             */
+
+            doTask(10, function(err, result) {
+                if (err) {
+                    console.error("Se ha sacado un ", err.message);
+                    return;
+                }
+                console.log("Tiradas correctas: ", result.value);
+            });
+
+            /* 
+                Esto es una forma clásica donde utilizamos una función callback
+                para gestionar la asincronia y facilitar la reutilización, 
+                pudiendo reutilizar la función con la lógica, aplicando 
+                diferentes funciones callback según nos interese.
+
+                Observa que aunque en este ejemplo se ha utilizado un parámetro 
+                err y otro result en el callback para gestionar un objeto de 
+                error y un objeto de resultados, esto puede modificarse a gusto 
+                del desarrollador, aunque lo habitual suele ser este esquema.
+
+                A pesar de ser una forma flexible y potente de controlar la 
+                asincronía, que permite realizar múltiples posibilidades, 
+                las funciones callbacks tienen ciertas desventajas evidentes. 
+                En primer lugar, el código creado con las funciones es algo 
+                caótico y (quizás subjetivamente) algo feo. Por ejemplo, 
+                el tener que pasar un null por parámetros en algunas funciones, 
+                no es demasiado elegante.
+
+                Pero sobre todo, uno de los problemas evidentes viene a la 
+                hora de tener que gestionar la asincronía varias veces en una 
+                misma función, donde al introducir varias funciones con 
+                callbacks en su interior, conseguimos una estructura anidada 
+                similar a la siguiente.
+
+                https://lenguajejs.com/javascript/asincronia/callbacks/callback-hell.gif
+
+                La forma triangular que produce es conocida como Callback Hell o Pyramid of Doom, 
+                debido a su forma, resultando un código muy poco elegante que se puede 
+                complicar demasiado de cara a la legibilidad.
+
+                Las promesas son un concepto para resolver el problema de asincronía de una forma mucho 
+                más elegante y práctica que, por ejemplo, utilizando funciones callbacks directamente.
+
+                Como su propio nombre indica, una promesa es algo que, en principio pensamos que se cumplirá, 
+                pero en el futuro pueden ocurrir varias cosas.
+
+                https://lenguajejs.com/javascript/asincronia/promesas/promises.png
+
+                La promesa se cumple (promesa resuelta)
+                La promesa no se cumple (promesa se rechaza)
+                La promesa se queda en un estado incierto indefinidamente (promesa pendiente)
+
+                Con estas sencillas bases, podemos entender el funcionamiento de una promesa 
+                en Javascript. Antes de empezar, también debemos tener claro que existen 
+                dos partes importantes de las promesas: como consumirlas (utilizar promesas) 
+                y como crearlas (preparar una función para que use promesas y se puedan 
+                consumir).
+
+                Las promesas en Javascript se representan a través de un object, y cada promesa 
+                estará en un estado concreto: pendiente, aceptada o rechazada. Además, 
+                cada promesa tiene los siguientes métodos, que podremos utilizar para 
+                utilizarla
+
+                .then(function resolve)	Ejecuta la función callback resolve cuando la promesa se cumple.
+                .catch(function reject)	Ejecuta la función callback reject cuando la promesa se rechaza.
+                .then(function resolve,function reject)	Método equivalente a las dos anteriores en el mismo .then().
+                .finally(function end)	Ejecuta la función callback end tanto si se cumple como si se rechaza.
+
+                A diferencia del apartado anterior donde se utilizaban solamente funciones callback, en este enfoque 
+                se tiende a no anidar promesas, evitando así el famoso Callback Hell, y haciendo el código mucho más 
+                legible.
+
+                La forma general de consumir una promesa es utilizando el .then() con un sólo parámetro, puesto que 
+                muchas veces lo único que nos interesa es realizar una acción cuando la promesa se cumpla
+             */
+
+            fetch("./myFile.txt").then(function(response) {
+                /* Código a realizar cuando se cumpla la promesa */
+            });
+
+            /* 
+                Lo que vemos en el ejemplo anterior es el uso de la función fetch(), la cuál devuelve una promesa que 
+                se cumple cuando obtiene respuesta de la petición realizada. De esta forma, estaríamos preparando 
+                (de una forma legible) la forma de actuar de nuestro código a la respuesta de la petición realizada, 
+                todo ello de forma asíncrona.
+
+                Recuerda que podemos hacer uso del método .catch() para actuar cuando se rechaza una promesa:
+            */
+
+            fetch("./myFile.txt")
+            .then(function(response) {
+                /* Código a realizar cuando se cumpla la promesa */
+            })
+            .catch(function(error) {
+                /* Código a realizar cuando se rechaza la promesa */
+            });
+
+            /* 
+                Observa como hemos indentado los métodos .then() y .catch(), ya que se suele hacer así para que sea 
+                mucho más legible para el. Además, se pueden encadenar varios .then() si se siguen generando promesas
+                y se devuelven con un return
+             */
+
+            fetch("./myFile.txt")
+            .then(response => {
+                return response.text(); // Devuelve una promesa
+            })
+            .then(data => {
+                console.log(data);
+            })
+            .catch(error => { /* Código a realizar cuando se rechaza la promesa */ });
+
+            /* 
+                No olvides indicar el return para poder encadenar las siguientes promesas con .then(). 
+                Tras un .catch() también es posible encadenar .then() para continuar procesando promesas.
+
+                De hecho, usando arrow functions se puede mejorar aún más la legibilidad de este código, 
+                recordando que cuando sólo tenemos una sentencia en el cuerpo de la arrow function hay 
+                un return implícito.
+             */
+
+            fetch("./myFile.txt")
+            .then(response => response.text())
+            .then(data => console.log(data))
+            .finally(() => console.log("Terminado."))
+            .catch(error => console.error(data));
+
+            /* 
+                Observese además que hemos añadido el método .finally() para añadir una función callback 
+                que se ejecutará tanto si la promesa se cumple o se rechaza, lo que nos ahorrará tener 
+                que repetir la función en el .then() como en el .catch().
+
+                Observa que lo primero que haremos es crear un nuevo objeto promise que «envuelve» toda 
+                la función de la tarea doTask().
+
+                Al new Promise() se le pasa por parámetro una función con dos callbacks, el primero 
+                resolve el que utilizaremos cuando se cumpla la promesa, y el segundo reject cuando 
+                se rechace:
+            */
+
+            /* Implementación con promesas */
+            const doTaskPromise = (iterations) => new Promise((resolve, reject) => {
+                const numbers = [];
+                for (let i = 0; i < iterations; i++) {
+                    const number = 1 + Math.floor(Math.random() * 6);
+                    numbers.push(number);
+                    if (number === 6) {
+                    reject({
+                        error: true,
+                        message: "Se ha sacado un 6"
+                    });
+                    }
+                }
+                resolve({
+                    error: false,
+                    value: numbers
+                });
+            });
+            /* 
+                Se trata de una implementación muy similar a los callbacks que vimos en el apartado anterior, 
+                pero utilizan una  nativa para poder luego consumirla cómodamente:
+             */
+
+            doTaskPromise(10)
+            .then(result => console.log("Tiradas correctas: ", result.value))
+            .catch(err => console.error("Ha ocurrido algo: ", err.message));
+            /* 
+                Imagina el caso de que cada lanzamiento del dado (la parte donde genera el número aleatorio) 
+                fuera un proceso más costoso que tardara un tiempo considerable, quizás de esa forma se vea 
+                más clara la necesidad de una tarea asíncrona, controlada con promesas.
+
+                Ahora que sabemos ¿Qué son las promesas?, para qué y como se usan, podemos profundizar y aprender 
+                más sobre la API Promise nativa de Javascript, mediante la cuál podemos realizar operaciones con 
+                grupos de promesas, tanto independientes como dependientes entre sí.
+
+                
+             */
         </script>
     </body>
 </html>
